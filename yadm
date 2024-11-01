@@ -1723,7 +1723,18 @@ function configure_paths() {
   # obtain YADM_WORK from repo if it exists
   if [ -d "$GIT_DIR" ]; then
     local work
+    # It's possible this is a relative path, in which case it's relative to $GIT_DIR:
+    # https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreworktree
     work=$(unix_path "$("$GIT_PROGRAM" config core.worktree)")
+    if [[ "$work" != /* ]]; then
+      work="$GIT_DIR/$work"
+      # In the case of a relative path, it needs to be normalized to an absolute path
+      # for .config/yadm/alt files to be linked to the right place. This also has the
+      # effect of making the output much more readable vs a path containing ./../.
+      local resolved_work
+      resolved_work=$(cd "$work" && pwd)
+      [ $? -eq 0 ] && work="$resolved_work"
+    fi
     [ -n "$work" ] && YADM_WORK="$work"
   fi
 
